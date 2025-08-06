@@ -1,245 +1,205 @@
 // API configuration and utility functions
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000"
-
-// API response types
-export interface ApiResponse<T = any> {
-  data?: T
-  error?: string
-  message?: string
-}
-
-export interface MatchResult {
-  matches: [string, number][] // [resume_id, relevance_score]
-}
-
-export interface ChatbotResponse {
-  reply: string
-  best_candidate: string
-}
-
-export interface AnalyticsData {
-  job_postings: number
-  candidates: number
-}
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface JobPosting {
-  title: string
-  description: string
+  id: number;
+  title: string;
+  description: string;
+  department?: string;
+  location?: string;
+  job_type?: string;
+  salary_range?: string;
+  requirements?: string[];
+  status: string;
+  created_at: string;
 }
 
-export interface MatchFilters {
-  location?: { $eq: string }
-  experience?: { $gte: number }
-  skills?: { $in: string[] }
+export interface Candidate {
+  id: number;
+  resume_id: string;
+  full_name?: string;
+  email?: string;
+  phone?: string;
+  file_name: string;
+  file_size?: number;
+  skills?: string[];
+  experience_years?: number;
+  education?: any[];
+  uploaded_at: string;
 }
 
-// Generic API call function with improved error handling
-async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
-  try {
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 5000) // 5 second timeout
+export interface Match {
+  id: number;
+  job_posting_id: number;
+  candidate_id: number;
+  match_score: number;
+  match_details?: any;
+  status: string;
+  created_at: string;
+  job_posting: JobPosting;
+  candidate: Candidate;
+}
 
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+export interface Analytics {
+  total_jobs: number;
+  total_candidates: number;
+  total_matches: number;
+  active_jobs: number;
+  shortlisted_candidates: number;
+}
+
+export interface ChatRequest {
+  job_description: string;
+  candidate_id?: number;
+  message?: string;
+}
+
+export interface ChatResponse {
+  reply: string;
+  best_candidate?: string;
+  match_score?: number;
+}
+
+class ApiClient {
+  private baseUrl: string;
+
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl;
+  }
+
+  private async request<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<T> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const response = await fetch(url, {
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
         ...options.headers,
       },
-      signal: controller.signal,
       ...options,
-    })
-
-    clearTimeout(timeoutId)
+    });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `HTTP error! status: ${response.status}`);
     }
 
-    const data = await response.json()
-    return { data }
-  } catch (error) {
-    console.error(`API call failed for ${endpoint}:`, error)
-
-    // Check for different types of errors
-    if (error instanceof Error) {
-      if (error.name === "AbortError") {
-        return {
-          error: "Request timeout - backend service may be unavailable",
-          message: "demo_mode",
-        }
-      }
-
-      if (error.message.includes("fetch") || error.message.includes("Failed to fetch")) {
-        return {
-          error: "Backend service unavailable - using demo data",
-          message: "demo_mode",
-        }
-      }
-    }
-
-    return {
-      error: error instanceof Error ? error.message : "An unknown error occurred",
-    }
+    return response.json();
   }
-}
 
-// API Functions
+  // Job Postings
+  async getJobs(status?: string, department?: string): Promise<JobPosting[]> {
+    const params = new URLSearchParams();
+    if (status) params.append('status', status);
+    if (department) params.append('department', department);
+    
+    return this.request<JobPosting[]>(`/api/jobs?${params.toString()}`);
+  }
 
-/**
- * Upload candidate resumes (PDF files)
- */
-export async function uploadCandidateResumes(files: File[]): Promise<ApiResponse> {
-  try {
-    const formData = new FormData()
-    files.forEach((file) => {
-      formData.append("files", file)
-    })
+  async getJob(id: number): Promise<JobPosting> {
+    return this.request<JobPosting>(`/api/jobs/${id}`);
+  }
 
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout for uploads
+  async createJob(job: Omit<JobPosting, 'id' | 'created_at'>): Promise<JobPosting> {
+    return this.request<JobPosting>('/api/jobs', {
+      method: 'POST',
+      body: JSON.stringify(job),
+    });
+  }
 
-    const response = await fetch(`${API_BASE_URL}/api/candidates/upload`, {
-      method: "POST",
+  async updateJob(id: number, job: Partial<JobPosting>): Promise<JobPosting> {
+    return this.request<JobPosting>(`/api/jobs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(job),
+    });
+  }
+
+  async deleteJob(id: number): Promise<void> {
+    return this.request<void>(`/api/jobs/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Candidates
+  async getCandidates(skills?: string, experience_min?: number): Promise<Candidate[]> {
+    const params = new URLSearchParams();
+    if (skills) params.append('skills', skills);
+    if (experience_min) params.append('experience_min', experience_min.toString());
+    
+    return this.request<Candidate[]>(`/api/candidates?${params.toString()}`);
+  }
+
+  async getCandidate(id: number): Promise<Candidate> {
+    return this.request<Candidate>(`/api/candidates/${id}`);
+  }
+
+  async uploadCandidate(
+    file: File,
+    full_name?: string,
+    email?: string,
+    phone?: string
+  ): Promise<{ message: string; candidate_id: number; resume_id: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (full_name) formData.append('full_name', full_name);
+    if (email) formData.append('email', email);
+    if (phone) formData.append('phone', phone);
+
+    const response = await fetch(`${this.baseUrl}/api/candidates/upload`, {
+      method: 'POST',
       body: formData,
-      signal: controller.signal,
-    })
-
-    clearTimeout(timeoutId)
+    });
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.status}`)
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || `Upload failed! status: ${response.status}`);
     }
 
-    const data = await response.json()
-    return { data }
-  } catch (error) {
-    console.error("Resume upload failed:", error)
+    return response.json();
+  }
 
-    if (error instanceof Error && (error.name === "AbortError" || error.message.includes("fetch"))) {
-      return {
-        error: "Backend service unavailable - files saved locally for demo",
-        message: "demo_mode",
-      }
-    }
+  // Matches
+  async createMatches(job_posting_id: number, filters?: any): Promise<Match[]> {
+    return this.request<Match[]>('/api/matches', {
+      method: 'POST',
+      body: JSON.stringify({ job_posting_id, filters }),
+    });
+  }
 
-    return {
-      error: error instanceof Error ? error.message : "Upload failed",
-    }
+  async getMatches(job_id?: number, candidate_id?: number, status?: string): Promise<Match[]> {
+    const params = new URLSearchParams();
+    if (job_id) params.append('job_id', job_id.toString());
+    if (candidate_id) params.append('candidate_id', candidate_id.toString());
+    if (status) params.append('status', status);
+    
+    return this.request<Match[]>(`/api/matches?${params.toString()}`);
+  }
+
+  async updateMatchStatus(match_id: number, status: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/api/matches/${match_id}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  // AI Chat
+  async chat(request: ChatRequest): Promise<ChatResponse> {
+    return this.request<ChatResponse>('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  // Analytics
+  async getAnalytics(): Promise<Analytics> {
+    return this.request<Analytics>('/api/analytics');
+  }
+
+  // Health check
+  async healthCheck(): Promise<{ status: string; timestamp: string; version: string }> {
+    return this.request<{ status: string; timestamp: string; version: string }>('/api/health');
   }
 }
 
-/**
- * Create a new job posting
- */
-export async function createJobPosting(jobData: JobPosting): Promise<ApiResponse> {
-  const result = await apiCall("/api/job-postings", {
-    method: "POST",
-    body: JSON.stringify(jobData),
-  })
-
-  // If backend is unavailable, simulate success
-  if (result.error && result.message === "demo_mode") {
-    return {
-      data: { id: Date.now(), ...jobData },
-      message: "Job created locally - backend unavailable",
-    }
-  }
-
-  return result
-}
-
-/**
- * Match candidates to a job description
- */
-export async function matchCandidates(description: string, filters?: MatchFilters): Promise<ApiResponse<MatchResult>> {
-  const result = await apiCall<MatchResult>("/api/match-candidates", {
-    method: "POST",
-    body: JSON.stringify({
-      description,
-      filters: filters || {},
-    }),
-  })
-
-  // If backend is unavailable, return demo matches
-  if (result.error && result.message === "demo_mode") {
-    const demoMatches: [string, number][] = [
-      ["resume_001", 0.95],
-      ["resume_002", 0.89],
-      ["resume_003", 0.84],
-      ["resume_004", 0.78],
-      ["resume_005", 0.72],
-    ]
-
-    return {
-      data: { matches: demoMatches },
-      message: "Using demo matches - backend unavailable",
-    }
-  }
-
-  return result
-}
-
-/**
- * Get chatbot explanation for job matching
- */
-export async function getChatbotExplanation(jobDescription: string): Promise<ApiResponse<ChatbotResponse>> {
-  const result = await apiCall<ChatbotResponse>("/api/chatbot", {
-    method: "POST",
-    body: JSON.stringify({
-      job_description: jobDescription,
-    }),
-  })
-
-  // If backend is unavailable, return demo explanation
-  if (result.error && result.message === "demo_mode") {
-    return {
-      data: {
-        reply: `Based on the job description analysis, I've identified the key requirements and matched them against our candidate database.\n\nThe top matches show strong alignment in:\n• Technical skills and experience level\n• Industry background and domain knowledge\n• Communication and collaboration abilities\n\nThe best candidate (resume_001) demonstrates 95% compatibility with your requirements, particularly excelling in the core competencies you've outlined.`,
-        best_candidate: "resume_001",
-      },
-      message: "Using demo explanation - backend unavailable",
-    }
-  }
-
-  return result
-}
-
-/**
- * Fetch dashboard analytics
- */
-export async function getDashboardAnalytics(): Promise<ApiResponse<AnalyticsData>> {
-  const result = await apiCall<AnalyticsData>("/api/analytics", {
-    method: "GET",
-  })
-
-  // Always return demo data if backend is unavailable
-  if (result.error) {
-    return {
-      data: {
-        job_postings: 24,
-        candidates: 1247,
-      },
-      message: "Using demo data - backend service unavailable",
-    }
-  }
-
-  return result
-}
-
-// Utility functions for data transformation
-export function formatMatchResults(matches: [string, number][]): Array<{
-  resumeId: string
-  relevanceScore: number
-  matchPercentage: number
-}> {
-  return matches.map(([resumeId, score]) => ({
-    resumeId,
-    relevanceScore: score,
-    matchPercentage: Math.round(score * 100),
-  }))
-}
-
-export function getTopMatches(matches: [string, number][], limit = 5) {
-  return matches
-    .sort((a, b) => b[1] - a[1]) // Sort by relevance score descending
-    .slice(0, limit)
-}
+export const apiClient = new ApiClient();
