@@ -1,0 +1,22 @@
+{
+  "files.autoSave": "afterDelay",
+  "editor.formatOnSave": true,
+  "security.workspace.trust.untrustedFiles": "open",
+  "git.openRepositoryInParentFolders": "never",
+  
+  // Enable Tailwind CSS IntelliSense validation
+  "tailwindCSS.validate": true,
+  
+  // Tell Tailwind extension to treat CSS files as Tailwind CSS
+  "tailwindCSS.includeLanguages": {
+    "css": "tailwindcss",
+    "postcss": "tailwindcss"
+  },
+
+  // Optional: Add experimental class regex for better class detection
+  "tailwindCSS.experimental.classRegex": [
+    "tw`([^`]*)",
+    "className=\"([^\"]*)\"",
+    "class=\"([^\"]*)\""
+  ]
+}
