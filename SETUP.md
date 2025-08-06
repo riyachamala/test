@@ -185,8 +185,8 @@ GROQ_API_KEY=your_key
 UPLOAD_DIR=uploads
 MAX_FILE_SIZE=10485760
 
-# Security
-SECRET_KEY=your-secret-key
+# CORS
+ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 ```
 
 ### Database Options

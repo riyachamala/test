@@ -92,11 +92,6 @@ GROQ_API_KEY=your_groq_api_key
 UPLOAD_DIR=uploads
 MAX_FILE_SIZE=10485760
 
-# Security
-SECRET_KEY=your-secret-key-change-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
 # CORS
 ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 
@@ -228,26 +223,6 @@ alembic revision --autogenerate -m "Initial migration"
 alembic upgrade head
 ```
 
-## 🔒 Security Considerations
-
-### Production Deployment
-
-1. **Change default secret key**
-2. **Use environment variables for all sensitive data**
-3. **Enable HTTPS**
-4. **Implement proper authentication**
-5. **Add rate limiting**
-6. **Use production database (PostgreSQL)**
-7. **Set up proper CORS origins**
-
-### Authentication (TODO)
-The current version doesn't include authentication. For production:
-
-1. Implement JWT authentication
-2. Add user roles and permissions
-3. Secure file uploads
-4. Add API rate limiting
-
 ## 🧪 Testing
 
 ### Backend Testing
@@ -268,20 +243,6 @@ npm test
 ## 🚀 Deployment
 
 ### Backend Deployment (FastAPI)
-
-#### Using Docker
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8000
-
-CMD ["uvicorn", "backend.api:app", "--host", "0.0.0.0", "--port", "8000"]
-```
 
 #### Using Railway/Heroku
 ```bash
@@ -361,4 +322,4 @@ For issues and questions:
 
 ---
 
-**Note**: This is a development version. For production use, implement proper authentication, security measures, and use production-grade databases and services.
+**Note**: This is a development version configured for localhost-only use. For production deployment, implement proper authentication, security measures, and use production-grade databases and services.
