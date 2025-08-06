@@ -1,6 +1,6 @@
 # TalentHub Setup Guide
 
-This guide will walk you through setting up TalentHub, an AI-powered recruitment platform.
+This guide will walk you through setting up TalentHub, an AI-powered recruitment platform for localhost development.
 
 ## 🎯 Quick Start (5 minutes)
 
@@ -117,7 +117,7 @@ talenhub/
 ├── main.py               # Backend entry point
 ├── start.sh              # Linux/macOS startup script
 ├── start.bat             # Windows startup script
-└── docker-compose.yml    # Docker deployment
+└── README.md
 ```
 
 ## 🚀 Running the Application
@@ -136,33 +136,6 @@ talenhub/
    npm run dev
    ```
    - Frontend: http://localhost:3000
-
-### Production Mode
-
-#### Using Docker
-
-1. **Build and run:**
-   ```bash
-   docker-compose up --build
-   ```
-
-2. **Access the application:**
-   - Frontend: http://localhost:3000
-   - Backend: http://localhost:8000
-
-#### Manual Production Setup
-
-1. **Backend:**
-   ```bash
-   pip install -r requirements.txt
-   uvicorn backend.api:app --host 0.0.0.0 --port 8000
-   ```
-
-2. **Frontend:**
-   ```bash
-   npm run build
-   npm start
-   ```
 
 ## 🔧 Configuration
 
@@ -185,21 +158,18 @@ GROQ_API_KEY=your_key
 UPLOAD_DIR=uploads
 MAX_FILE_SIZE=10485760
 
-# Security
-SECRET_KEY=your-secret-key
+# CORS (localhost only)
+ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:3001"]
+
+# Frontend API URL
+NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-### Database Options
+### Database
 
-**SQLite (Default - Development):**
-```env
-DATABASE_URL=sqlite+aiosqlite:///./talenhub.db
-```
-
-**PostgreSQL (Production):**
-```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost/talenhub
-```
+The application uses SQLite by default (perfect for localhost development):
+- Database file: `./talenhub.db` (created automatically)
+- No additional database setup required
 
 ## 🧪 Testing the Setup
 
@@ -322,33 +292,6 @@ python main.py
    - Check Groq API limits
    - Verify network connectivity
    - Monitor API response times
-
-## 🔒 Security Notes
-
-### Development
-- Default secret key is used
-- SQLite database
-- No authentication
-
-### Production
-- Change all default secrets
-- Use PostgreSQL
-- Implement authentication
-- Enable HTTPS
-- Set up proper CORS
-- Add rate limiting
-
-## 📈 Monitoring
-
-### Health Checks
-- Backend: `GET /api/health`
-- Frontend: Browser console
-
-### Metrics to Monitor
-- API response times
-- File upload success rates
-- AI processing times
-- Database query performance
 
 ## 🆘 Getting Help
 

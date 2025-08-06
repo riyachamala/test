@@ -92,12 +92,7 @@ GROQ_API_KEY=your_groq_api_key
 UPLOAD_DIR=uploads
 MAX_FILE_SIZE=10485760
 
-# Security
-SECRET_KEY=your-secret-key-change-in-production
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# CORS
+# CORS (localhost only)
 ALLOWED_ORIGINS=["http://localhost:3000","http://localhost:3001"]
 
 # Frontend API URL
@@ -113,31 +108,52 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 4. Add to `.env` file
 
 #### Groq Setup
-1. Sign up at [Groq](https://console.groq.com/)
+1. Sign up at [Groq Console](https://console.groq.com/)
 2. Get your API key
 3. Add to `.env` file
 
 ## 🏃‍♂️ Running the Application
 
-### 1. Start the Backend
+### Option 1: Using the startup script (Recommended)
 
+**Linux/macOS:**
 ```bash
-# Start the FastAPI server
-python main.py
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your API keys
+nano .env
+
+# Run the startup script
+./start.sh
 ```
 
-The backend will be available at `http://localhost:8000`
+**Windows:**
+```cmd
+# Copy environment template
+copy .env.example .env
 
-### 2. Start the Frontend
+# Edit .env with your API keys
+notepad .env
 
-```bash
-# In a new terminal, start the Next.js development server
-npm run dev
-# or
-pnpm dev
+# Run the startup script
+start.bat
 ```
 
-The frontend will be available at `http://localhost:3000`
+### Option 2: Manual setup
+
+1. **Start backend:**
+   ```bash
+   python main.py
+   ```
+   - Backend: http://localhost:8000
+   - API docs: http://localhost:8000/docs
+
+2. **Start frontend:**
+   ```bash
+   npm run dev
+   ```
+   - Frontend: http://localhost:3000
 
 ### 3. Verify Installation
 
@@ -201,107 +217,10 @@ talenhub/
 
 ## 🗄️ Database
 
-The application uses SQLite by default (good for development). For production, consider:
+The application uses SQLite by default (perfect for localhost development).
 
-### PostgreSQL Setup
-```env
-DATABASE_URL=postgresql+asyncpg://user:password@localhost/talenhub
-```
-
-Install PostgreSQL dependencies:
-```bash
-pip install asyncpg
-```
-
-### Database Migrations
-```bash
-# Install Alembic
-pip install alembic
-
-# Initialize migrations
-alembic init alembic
-
-# Create migration
-alembic revision --autogenerate -m "Initial migration"
-
-# Run migrations
-alembic upgrade head
-```
-
-## 🔒 Security Considerations
-
-### Production Deployment
-
-1. **Change default secret key**
-2. **Use environment variables for all sensitive data**
-3. **Enable HTTPS**
-4. **Implement proper authentication**
-5. **Add rate limiting**
-6. **Use production database (PostgreSQL)**
-7. **Set up proper CORS origins**
-
-### Authentication (TODO)
-The current version doesn't include authentication. For production:
-
-1. Implement JWT authentication
-2. Add user roles and permissions
-3. Secure file uploads
-4. Add API rate limiting
-
-## 🧪 Testing
-
-### Backend Testing
-```bash
-# Install testing dependencies
-pip install pytest pytest-asyncio httpx
-
-# Run tests
-pytest
-```
-
-### Frontend Testing
-```bash
-# Run Next.js tests
-npm test
-```
-
-## 🚀 Deployment
-
-### Backend Deployment (FastAPI)
-
-#### Using Docker
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-
-COPY . .
-EXPOSE 8000
-
-CMD ["uvicorn", "backend.api:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-#### Using Railway/Heroku
-```bash
-# Add Procfile
-echo "web: uvicorn backend.api:app --host 0.0.0.0 --port \$PORT" > Procfile
-```
-
-### Frontend Deployment (Next.js)
-
-#### Vercel (Recommended)
-```bash
-npm install -g vercel
-vercel
-```
-
-#### Static Export
-```bash
-npm run build
-npm run export
-```
+### Database Location
+- SQLite file: `./talenhub.db` (created automatically)
 
 ## 🔧 Troubleshooting
 
@@ -328,28 +247,33 @@ npm run export
 - Backend logs: Check terminal running `python main.py`
 - Frontend logs: Check browser console and terminal running `npm run dev`
 
-## 📈 Monitoring
+## 📊 Using the Application
 
-### Health Checks
-- Backend: `GET /api/health`
-- Frontend: Check browser console for errors
+### 1. Upload Resumes
+1. Go to the Candidates page
+2. Upload PDF resumes
+3. The system will automatically:
+   - Extract text from PDFs
+   - Create vector embeddings
+   - Store in Pinecone
+   - Extract skills and experience
 
-### Performance Monitoring
-- Monitor API response times
-- Check database query performance
-- Monitor file upload sizes and processing times
+### 2. Create Job Postings
+1. Go to the Jobs page
+2. Click "Add New Job"
+3. Fill in job details
+4. Save the job posting
 
-## 🤝 Contributing
+### 3. AI Matching
+1. Select a job posting
+2. Click "Find Matches"
+3. View AI-generated candidate matches
+4. Review match scores and details
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📄 License
-
-This project is licensed under the MIT License.
+### 4. AI Chat
+1. Go to the AI Assistant page
+2. Ask questions about candidates or jobs
+3. Get AI-powered insights and recommendations
 
 ## 🆘 Support
 
@@ -361,4 +285,4 @@ For issues and questions:
 
 ---
 
-**Note**: This is a development version. For production use, implement proper authentication, security measures, and use production-grade databases and services.
+**Note**: This is configured for localhost development. For production deployment, additional security measures would be needed.
